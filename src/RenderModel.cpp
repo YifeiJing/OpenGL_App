@@ -6,7 +6,7 @@
 #include "Model.hpp"
 #include "RenderModel.hpp"
 
-RenderModel::RenderModel(const std::string& fileName) : Model() {
+RenderModel::RenderModel(const std::string& fileName) : Model(fileName) {
         loadOBJ(std::string(OBJ_DIR) + fileName + ".obj");
         loadTexture(std::string(TEXTURE_DIR) + fileName + ".png");
 

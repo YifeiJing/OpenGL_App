@@ -94,6 +94,10 @@ const struct png& Model::getTexture() {
     return texture;
 }
 
+const std::string& Model::getName() const {
+    return name;
+}
+
 std::ostream& operator<< (std::ostream& out, glm::vec3& v) {
     out << "[" << v.x << " " << v.y << " " << v.z << "]";
     return out;

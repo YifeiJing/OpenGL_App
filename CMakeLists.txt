@@ -26,6 +26,8 @@ add_executable(opengl-cmake-skeleton
   src/objloader.cpp
   src/RenderModel.hpp
   src/RenderModel.cpp
+  src/os/fileSystem.hpp
+  src/os/fileSystem.cpp
 )
 
 set(GLM_TEST_ENABLE ON)
@@ -33,7 +35,6 @@ set_property(TARGET opengl-cmake-skeleton PROPERTY CXX_STANDARD 11)
 target_compile_options(opengl-cmake-skeleton PRIVATE -Wall)
 
 add_subdirectory(imgui)
-#find_package(glew REQUIRED)
 find_package(glfw3 REQUIRED CONFIG)
 #add_subdirectory(lib/glfw EXCLUDE_FROM_ALL)
 add_subdirectory(lib/glew EXCLUDE_FROM_ALL)

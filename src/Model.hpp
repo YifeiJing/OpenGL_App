@@ -15,7 +15,7 @@ protected:
     const std::string name;
 public:
     // Assume that the .obj and the .png has the same name
-    Model(const std::string name): name(name) {}
+    Model(const std::string& name): name(name) {}
     Model(): Model("") {}
     void loadSTL(const std::string fileName);
     void addSTL(const std::string fileName);
@@ -26,6 +26,7 @@ public:
     const std::vector<glm::vec3>& getNormals();
     const std::vector<glm::vec2>& getUVs();
     const struct png& getTexture();
+    const std::string& getName() const;
 private:
     void reset();
 };

@@ -14,9 +14,11 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/matrix_operation.hpp>
+#include <glm/gtx/transform.hpp>
 #include <glm/gtc/constants.hpp>
 #include <iostream>
 #include <vector>
+#include <string>
 
 #include "asset.hpp"
 #include "glError.hpp"
@@ -28,12 +30,48 @@
 #include <stdlib.h>
 #include "png_loader.hpp"
 #include "RenderModel.hpp"
+#include "os/fileSystem.hpp"
 
-struct VertexType {
-  glm::vec3 position;
-  glm::vec3 normal;
-  glm::vec4 color;
-};
+float scale_factor = 1.0;
+static std::vector<std::string> model_names;
+static bool model_names_checked[1024] = {false};
+static std::vector<bool> model_names_loaded;
+
+const std::vector<std::string> getDirOBJs() {
+    auto dirContents = getDirContents(OBJ_DIR);
+    std::vector<std::string> res;
+    for (auto& entry : dirContents) {
+        if (entry.find(".obj") != std::string::npos)
+            res.push_back(entry.substr(0, entry.find(".obj")));
+    }
+    return res;
+}
+
+void load_model_names() {
+    auto obj_dir_entries = getDirOBJs();
+    for (auto& entry: obj_dir_entries) {
+        model_names.push_back(entry);
+        /* model_names_checked.push_back(false); */
+        model_names_loaded.push_back(false);
+    }
+}
+
+void load_model(std::vector<RenderModel>& models) {
+    for (int i = 0; i < model_names.size(); i++) {
+        if (model_names_checked[i] && model_names_loaded[i] == false) {
+            models.push_back(RenderModel("/" + model_names[i]));
+            model_names_loaded[i] = true;
+        }
+    }
+}
+
+bool model_menu_checked(const RenderModel& model) {
+    for (int i = 0; i < model_names.size(); i++) {
+        if (model.getName().find(model_names[i]) != std::string::npos && model_names_checked[i])
+            return true;
+    }
+    return false;
+}
 
 std::vector<stl::triangle> parse_stl(const std::string& file_name) {
     auto info = stl::parse_stl(file_name);
@@ -44,26 +82,6 @@ void load_model(Model& model) {
     const std::vector<std::string> parts({"/JD_SubTool1.stl","/JD_SubTool2.stl","/JD_SubTool3.stl","/JD_SubTool4.stl","/JD_SubTool5.stl","/JD_SubTool6.stl","/JD_SubTool7.stl","/JD_SubTool8.stl","/JD_SubTool9.stl","/JD_SubTool10.stl","/JD_SubTool11.stl","/JD_SubTool12.stl"});
     for (auto& part : parts) {
         model.addSTL(std::string(STL_DIR) + part);
-    }
-}
-void load_model(std::vector<VertexType>& vertices, std::vector<unsigned short>& indices) {
-    const std::vector<std::string> parts({"/JD_SubTool1.stl","/JD_SubTool2.stl","/JD_SubTool3.stl","/JD_SubTool4.stl","/JD_SubTool5.stl","/JD_SubTool6.stl","/JD_SubTool7.stl","/JD_SubTool8.stl","/JD_SubTool9.stl","/JD_SubTool10.stl","/JD_SubTool11.stl","/JD_SubTool12.stl"});
-  const glm::vec4 color(0.8, 0.9, 0.9, 1);
-    for (auto& part : parts) {
-        std::string file_dir(STL_DIR);
-        std::vector<stl::triangle> triangles = parse_stl(file_dir + part);
-        std::vector<unsigned short> indices_sub;
-        std::vector<glm::vec3> out_vertices, out_normals;
-        indexVBO(triangles, indices_sub, out_vertices, out_normals);
-        int size = out_vertices.size();
-
-        for (int i = 0; i < size; i++) {
-            vertices.push_back({out_vertices[i], out_normals[i], color});
-        }
-        for (int i = 0; i < indices_sub.size(); i++) {
-            indices.push_back(indices_sub[i]);
-        }
-        std::cout << "Loaded: " << part << std::endl;
     }
 }
 
@@ -77,18 +95,16 @@ MyApplication::MyApplication()
   const char* glsl_version = "#version 150";
   setWindow(getWindow());
   // creation of the mesh ------------------------------------------------------
-  const std::vector<std::string> names = {"/boob", "/hair"};
-  for (auto& name : names) {
-      models.push_back(RenderModel(name));
-  }
+  /* const std::vector<std::string> names = {"/boob", "/hair"}; */
+  /* for (auto& name : names) { */
+  /*     models.push_back(RenderModel(name)); */
+  /* } */
   // creation of the vertex array buffer----------------------------------------
-
 
   // vao
   glGenVertexArrays(1, &vao);
   glBindVertexArray(vao);
 
-  /* models.push_back(RenderModel(names[0])); */
   // vao end
   glBindVertexArray(0);
 
@@ -100,36 +116,30 @@ MyApplication::MyApplication()
   ImGui_ImplGlfw_InitForOpenGL(getWindow(), true);
   ImGui_ImplOpenGL3_Init(glsl_version);
 
+  load_model_names();
 }
 
 void MyApplication::loop() {
+    load_model(models);
   // exit on window close button pressed
   if (glfwWindowShouldClose(getWindow()))
     exit();
 
-  const float radius = 100.0;
-  /* float t = getTime(); */
-  // set matrix : projection + view
-  /* projection = glm::perspective(float(2.0 * atan(getHeight() / 1920.f)), */
-  /*                               getWindowRatio(), 0.1f, 100.f); */
   computeMatricesFromInputs();
   projection = getProjectionMatrix();
-  glm::mat4 scale(0.1);
+  glm::mat4 scale = glm::scale(glm::mat4(1.0f), {scale_factor, scale_factor, scale_factor});
   view = getViewMatrix();
   glm::mat4 MVP = projection * view * scale;
 
   // clear
   glClear(GL_COLOR_BUFFER_BIT);
-  glClearColor(0.0, 0.0, 1.0, 0.0);
+  glClearColor(0.0, 0.0, 0.0, 0.0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   shaderProgram.use();
 
-  Texture_ID = shaderProgram.uniform("myTextureSampler");
+  GLuint Texture_ID = shaderProgram.uniform("myTextureSampler");
   GLuint LightID = shaderProgram.uniform("LightPosition_worldspace");
-  /* glActiveTexture(GL_TEXTURE0); */
-  /* glBindTexture(GL_TEXTURE_2D, Texture); */
-  /* glUniform1i(Texture_ID, 0); */
 
   // send uniforms
   shaderProgram.setUniform("MVP", MVP);
@@ -138,19 +148,18 @@ void MyApplication::loop() {
   glm::vec3 lightPos = glm::vec3(0,-10,0);
   glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
 
-  /* glCheckError(__FILE__, __LINE__); */
 
   glBindVertexArray(vao);
 
   GLuint position_id = shaderProgram.attribute("vertexPosition_modelspace");
   GLuint UV_id= shaderProgram.attribute("vertexUV");
   GLuint normal_id = shaderProgram.attribute("vertexNormal_modelspace");
-  for (auto& model : models)
-      model.render(position_id, normal_id, UV_id, Texture_ID);
+  // Actually drawing
+  for (auto& model : models) {
+      if (model_menu_checked(model))
+        model.render(position_id, normal_id, UV_id, Texture_ID);
+  }
   
-  /* glCheckError(__FILE__, __LINE__); */
-  /* glDrawArrays(GL_TRIANGLES, 0, size); */
-  /* glDrawElements(GL_TRIANGLES, size, GL_UNSIGNED_SHORT, (void*)0); */
   glBindVertexArray(0);
 
   shaderProgram.unuse();
@@ -168,6 +177,14 @@ void MyApplication::loop() {
       ImGui::Text("Horizontal Angle: %f", getHorizontalAngle()*glm::one_over_pi<float>()*180.0);
       ImGui::Text("Vertical Angle: %f", getVerticalAngle()*glm::one_over_pi<float>()*180.0);
       ImGui::Text("FPS: %f", 1/getFrameDeltaTime());
+      ImGui::End();
+      /* ImGui::SetNextWindowPos({0,0}); */
+      ImGui::SetNextWindowSize({0.0, 0.0});
+      ImGui::Begin("Settings");
+      ImGui::DragFloat("Scale", &scale_factor, 0.1, 0.0, 1.0);
+      for(int i = 0; i < model_names.size(); i++) {
+          ImGui::Checkbox(model_names[i].c_str(), &model_names_checked[i]);
+      }
       ImGui::End();
   }
   ImGui::Render();
