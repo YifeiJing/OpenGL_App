@@ -7,15 +7,27 @@
  */
 #include "MyApplication.hpp"
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/matrix_operation.hpp>
+#include <glm/gtc/constants.hpp>
 #include <iostream>
 #include <vector>
 
 #include "asset.hpp"
 #include "glError.hpp"
+
+#include "parse_stl.h"
+#include "controls.hpp"
+#include "vboindexer.hpp"
+#include "Model.hpp"
+#include <stdlib.h>
+#include "png_loader.hpp"
+#include "RenderModel.hpp"
 
 struct VertexType {
   glm::vec3 position;
@@ -23,95 +35,71 @@ struct VertexType {
   glm::vec4 color;
 };
 
-float heightMap(const glm::vec2 position) {
-  return 2.0 * sin(position.x) * sin(position.y);
+std::vector<stl::triangle> parse_stl(const std::string& file_name) {
+    auto info = stl::parse_stl(file_name);
+    return info.triangles;
 }
 
-VertexType getHeightMap(const glm::vec2 position) {
-  const glm::vec2 dx(1.0, 0.0);
-  const glm::vec2 dy(0.0, 1.0);
+void load_model(Model& model) {
+    const std::vector<std::string> parts({"/JD_SubTool1.stl","/JD_SubTool2.stl","/JD_SubTool3.stl","/JD_SubTool4.stl","/JD_SubTool5.stl","/JD_SubTool6.stl","/JD_SubTool7.stl","/JD_SubTool8.stl","/JD_SubTool9.stl","/JD_SubTool10.stl","/JD_SubTool11.stl","/JD_SubTool12.stl"});
+    for (auto& part : parts) {
+        model.addSTL(std::string(STL_DIR) + part);
+    }
+}
+void load_model(std::vector<VertexType>& vertices, std::vector<unsigned short>& indices) {
+    const std::vector<std::string> parts({"/JD_SubTool1.stl","/JD_SubTool2.stl","/JD_SubTool3.stl","/JD_SubTool4.stl","/JD_SubTool5.stl","/JD_SubTool6.stl","/JD_SubTool7.stl","/JD_SubTool8.stl","/JD_SubTool9.stl","/JD_SubTool10.stl","/JD_SubTool11.stl","/JD_SubTool12.stl"});
+  const glm::vec4 color(0.8, 0.9, 0.9, 1);
+    for (auto& part : parts) {
+        std::string file_dir(STL_DIR);
+        std::vector<stl::triangle> triangles = parse_stl(file_dir + part);
+        std::vector<unsigned short> indices_sub;
+        std::vector<glm::vec3> out_vertices, out_normals;
+        indexVBO(triangles, indices_sub, out_vertices, out_normals);
+        int size = out_vertices.size();
 
-  VertexType v;
-  float h = heightMap(position);
-  float hx = 100.f * (heightMap(position + 0.01f * dx) - h);
-  float hy = 100.f * (heightMap(position + 0.01f * dy) - h);
-
-  v.position = glm::vec3(position, h);
-  v.normal = glm::normalize(glm::vec3(-hx, -hy, 1.0));
-
-  float c = sin(h * 5.f) * 0.5 + 0.5;
-  v.color = glm::vec4(c, 1.0 - c, 1.0, 1.0);
-  return v;
+        for (int i = 0; i < size; i++) {
+            vertices.push_back({out_vertices[i], out_normals[i], color});
+        }
+        for (int i = 0; i < indices_sub.size(); i++) {
+            indices.push_back(indices_sub[i]);
+        }
+        std::cout << "Loaded: " << part << std::endl;
+    }
 }
 
 MyApplication::MyApplication()
     : Application(),
-      vertexShader(SHADER_DIR "/shader.vert", GL_VERTEX_SHADER),
-      fragmentShader(SHADER_DIR "/shader.frag", GL_FRAGMENT_SHADER),
+      vertexShader(SHADER_DIR "/StandardShading.vertexshader", GL_VERTEX_SHADER),
+      fragmentShader(SHADER_DIR "/StandardShading.fragmentshader", GL_FRAGMENT_SHADER),
       shaderProgram({vertexShader, fragmentShader}) {
   glCheckError(__FILE__, __LINE__);
 
+  const char* glsl_version = "#version 150";
+  setWindow(getWindow());
   // creation of the mesh ------------------------------------------------------
-  std::vector<VertexType> vertices;
-  std::vector<GLuint> index;
-
-  for (int y = 0; y <= size; ++y)
-    for (int x = 0; x <= size; ++x) {
-      float xx = (x - size / 2) * 0.1f;
-      float yy = (y - size / 2) * 0.1f;
-      vertices.push_back(getHeightMap({xx, yy}));
-    }
-
-  for (int y = 0; y < size; ++y)
-    for (int x = 0; x < size; ++x) {
-      index.push_back((x + 0) + (size + 1) * (y + 0));
-      index.push_back((x + 1) + (size + 1) * (y + 0));
-      index.push_back((x + 1) + (size + 1) * (y + 1));
-
-      index.push_back((x + 1) + (size + 1) * (y + 1));
-      index.push_back((x + 0) + (size + 1) * (y + 1));
-      index.push_back((x + 0) + (size + 1) * (y + 0));
-    }
-
-  std::cout << "vertices=" << vertices.size() << std::endl;
-  std::cout << "index=" << index.size() << std::endl;
-
+  const std::vector<std::string> names = {"/boob", "/hair"};
+  for (auto& name : names) {
+      models.push_back(RenderModel(name));
+  }
   // creation of the vertex array buffer----------------------------------------
 
-  // vbo
-  glGenBuffers(1, &vbo);
-  glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(VertexType),
-               vertices.data(), GL_STATIC_DRAW);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-  // ibo
-  glGenBuffers(1, &ibo);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, index.size() * sizeof(GLuint),
-               index.data(), GL_STATIC_DRAW);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
   // vao
   glGenVertexArrays(1, &vao);
   glBindVertexArray(vao);
 
-  // bind vbo
-  glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-  // map vbo to shader attributes
-  shaderProgram.setAttribute("position", 3, sizeof(VertexType),
-                             offsetof(VertexType, position));
-  shaderProgram.setAttribute("normal", 3, sizeof(VertexType),
-                             offsetof(VertexType, normal));
-  shaderProgram.setAttribute("color", 4, sizeof(VertexType),
-                             offsetof(VertexType, color));
-
-  // bind the ibo
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-
+  /* models.push_back(RenderModel(names[0])); */
   // vao end
   glBindVertexArray(0);
+
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+  ImGui::StyleColorsDark();
+  ImGui_ImplGlfw_InitForOpenGL(getWindow(), true);
+  ImGui_ImplOpenGL3_Init(glsl_version);
+
 }
 
 void MyApplication::loop() {
@@ -119,39 +107,69 @@ void MyApplication::loop() {
   if (glfwWindowShouldClose(getWindow()))
     exit();
 
-  float t = getTime();
+  const float radius = 100.0;
+  /* float t = getTime(); */
   // set matrix : projection + view
-  projection = glm::perspective(float(2.0 * atan(getHeight() / 1920.f)),
-                                getWindowRatio(), 0.1f, 100.f);
-  view = glm::lookAt(glm::vec3(20.0 * sin(t), 20.0 * cos(t), 20.0),
-                     glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 1.0));
+  /* projection = glm::perspective(float(2.0 * atan(getHeight() / 1920.f)), */
+  /*                               getWindowRatio(), 0.1f, 100.f); */
+  computeMatricesFromInputs();
+  projection = getProjectionMatrix();
+  glm::mat4 scale(0.1);
+  view = getViewMatrix();
+  glm::mat4 MVP = projection * view * scale;
 
   // clear
   glClear(GL_COLOR_BUFFER_BIT);
-  glClearColor(0.0, 0.0, 0.0, 0.0);
+  glClearColor(0.0, 0.0, 1.0, 0.0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   shaderProgram.use();
 
-  // send uniforms
-  shaderProgram.setUniform("projection", projection);
-  shaderProgram.setUniform("view", view);
+  Texture_ID = shaderProgram.uniform("myTextureSampler");
+  GLuint LightID = shaderProgram.uniform("LightPosition_worldspace");
+  /* glActiveTexture(GL_TEXTURE0); */
+  /* glBindTexture(GL_TEXTURE_2D, Texture); */
+  /* glUniform1i(Texture_ID, 0); */
 
-  glCheckError(__FILE__, __LINE__);
+  // send uniforms
+  shaderProgram.setUniform("MVP", MVP);
+  shaderProgram.setUniform("V", view);
+  shaderProgram.setUniform("M", scale);
+  glm::vec3 lightPos = glm::vec3(0,-10,0);
+  glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
+
+  /* glCheckError(__FILE__, __LINE__); */
 
   glBindVertexArray(vao);
 
-  glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-
-  glCheckError(__FILE__, __LINE__);
-  glDrawElements(GL_TRIANGLES,         // mode
-                 size * size * 2 * 3,  // count
-                 GL_UNSIGNED_INT,      // type
-                 NULL                  // element array buffer offset
-  );
-
+  GLuint position_id = shaderProgram.attribute("vertexPosition_modelspace");
+  GLuint UV_id= shaderProgram.attribute("vertexUV");
+  GLuint normal_id = shaderProgram.attribute("vertexNormal_modelspace");
+  for (auto& model : models)
+      model.render(position_id, normal_id, UV_id, Texture_ID);
+  
+  /* glCheckError(__FILE__, __LINE__); */
+  /* glDrawArrays(GL_TRIANGLES, 0, size); */
+  /* glDrawElements(GL_TRIANGLES, size, GL_UNSIGNED_SHORT, (void*)0); */
   glBindVertexArray(0);
 
   shaderProgram.unuse();
+
+  ImGui_ImplOpenGL3_NewFrame();
+  ImGui_ImplGlfw_NewFrame();
+  ImGui::NewFrame();
+  /* ImGui::ShowDemoWindow(); */
+  {
+      ImGui::SetNextWindowPos({0,0});
+      ImGui::SetNextWindowSize({0.0, 0.0});
+      ImGui::Begin("Camera info");
+      glm::vec3 position = getPosition();
+      ImGui::Text("Camera position: %f, %f, %f", position.x, position.y, position.z);
+      ImGui::Text("Horizontal Angle: %f", getHorizontalAngle()*glm::one_over_pi<float>()*180.0);
+      ImGui::Text("Vertical Angle: %f", getVerticalAngle()*glm::one_over_pi<float>()*180.0);
+      ImGui::Text("FPS: %f", 1/getFrameDeltaTime());
+      ImGui::End();
+  }
+  ImGui::Render();
+  ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }

@@ -13,20 +13,39 @@ add_executable(opengl-cmake-skeleton
   src/main.cpp
   src/Shader.hpp
   src/Shader.cpp
+  src/controls.hpp
+  src/controls.cpp
+  src/vboindexer.hpp
+  src/vboindexer.cpp
+  src/Model.hpp
+  src/Model.cpp
+  src/stb_image.h
+  src/png_loader.hpp
+  src/png_loader.cpp
+  src/objloader.hpp
+  src/objloader.cpp
+  src/RenderModel.hpp
+  src/RenderModel.cpp
 )
 
+set(GLM_TEST_ENABLE ON)
 set_property(TARGET opengl-cmake-skeleton PROPERTY CXX_STANDARD 11)
 target_compile_options(opengl-cmake-skeleton PRIVATE -Wall)
 
-add_definitions(-DGLEW_STATIC)
-add_subdirectory(lib/glfw EXCLUDE_FROM_ALL)
+add_subdirectory(imgui)
+#find_package(glew REQUIRED)
+find_package(glfw3 REQUIRED CONFIG)
+#add_subdirectory(lib/glfw EXCLUDE_FROM_ALL)
 add_subdirectory(lib/glew EXCLUDE_FROM_ALL)
 add_subdirectory(lib/glm EXCLUDE_FROM_ALL)
+add_subdirectory(lib/stl_parser EXCLUDE_FROM_ALL)
 
 target_link_libraries(opengl-cmake-skeleton
   PRIVATE glfw
   PRIVATE libglew_static
   PRIVATE glm
+  PRIVATE imgui
+  PRIVATE stl_parser
 )
 
 configure_file(
@@ -37,3 +56,4 @@ target_include_directories(opengl-cmake-skeleton
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
   PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/src
 )
+

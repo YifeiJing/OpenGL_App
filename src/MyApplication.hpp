@@ -11,6 +11,7 @@
 
 #include "Application.hpp"
 #include "Shader.hpp"
+#include "RenderModel.hpp"
 
 class MyApplication : public Application {
  public:
@@ -18,9 +19,8 @@ class MyApplication : public Application {
 
  protected:
   virtual void loop();
-
  private:
-  const int size = 100;
+    int size = 100;
 
   // shader
   Shader vertexShader;
@@ -32,7 +32,8 @@ class MyApplication : public Application {
   glm::mat4 view = glm::mat4(1.0);
 
   // VBO/VAO/ibo
-  GLuint vao, vbo, ibo;
+  GLuint vao, vbos[3], Texture, Texture_ID;
+  std::vector<RenderModel> models;
 };
 
 #endif  // OPENGL_CMAKE_SKELETON_MYAPPLICATION

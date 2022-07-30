@@ -1,3 +1,6 @@
 namespace asset {
 #define SHADER_DIR "@CMAKE_SOURCE_DIR@/shader"
+#define STL_DIR "@CMAKE_SOURCE_DIR@/stl"
+#define TEXTURE_DIR "@CMAKE_SOURCE_DIR@/textures"
+#define OBJ_DIR "@CMAKE_SOURCE_DIR@/objs"
 }
