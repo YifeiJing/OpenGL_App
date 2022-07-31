@@ -11,9 +11,10 @@ using namespace glm;
 
 glm::mat4 ViewMatrix;
 glm::mat4 ProjectionMatrix;
-
+void mouse_right_button_callback(GLFWwindow* window, int button, int action, int mods);
 void setWindow(GLFWwindow* win) {
     window = win;
+    /* glfwSetMouseButtonCallback(window, mouse_right_button_callback); */
 }
 
 glm::mat4 getViewMatrix(){
@@ -32,9 +33,13 @@ float horizontalAngle = 0.0f;
 float verticalAngle = 3.14f / 2.0;
 // Initial Field of View
 float initialFoV = 45.0f;
+double xpos_pre = 800/2, ypos_pre = 600/2;
+
+float theta = 3.14f / 2.0;
+float sine = 0.0f;
 
 float speed = 30.0f; // 3 units / second
-float mouseSpeed = 0.05f;
+float mouseSpeed = 0.005f;
 
 glm::vec3 getPosition() {
     return position;
@@ -48,6 +53,23 @@ float getVerticalAngle() {
     return verticalAngle;
 }
 
+void mouse_right_button_callback(GLFWwindow* window, int button, int action, int mods) {
+    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+        double xpos, ypos;
+	    glfwGetCursorPos(window, &xpos, &ypos);
+
+	// Reset mouse position for next frame
+	    /* glfwSetCursorPos(window, 800/2, 600/2); */
+
+
+	    horizontalAngle += mouseSpeed * float(xpos_pre - xpos );
+	    verticalAngle   += mouseSpeed * float(ypos_pre - ypos );
+    
+        xpos_pre = xpos;
+        ypos_pre = ypos;
+    }
+}
+
 void computeMatricesFromInputs(){
 
 	// glfwGetTime is called only once, the first time this function is called
@@ -57,23 +79,8 @@ void computeMatricesFromInputs(){
 	double currentTime = glfwGetTime();
 	float deltaTime = float(currentTime - lastTime);
 
-	// Get mouse position
-	/* double xpos, ypos; */
-	/* glfwGetCursorPos(window, &xpos, &ypos); */
-
-	/* // Reset mouse position for next frame */
-	/* glfwSetCursorPos(window, 800/2, 600/2); */
-
-	/* // Compute new orientation */
-	/* horizontalAngle += mouseSpeed * float(800/2 - xpos ); */
-	/* verticalAngle   += mouseSpeed * float(600/2 - ypos ); */
-
-    if (glfwGetKey( window, GLFW_KEY_W ) == GLFW_PRESS){
-        verticalAngle += mouseSpeed;
-	}
-	if (glfwGetKey( window, GLFW_KEY_S ) == GLFW_PRESS){
-        verticalAngle -= mouseSpeed;
-	}
+		// Compute new orientation
+    
     if (glfwGetKey( window, GLFW_KEY_D ) == GLFW_PRESS){
         horizontalAngle -= mouseSpeed;
 	}
@@ -113,7 +120,12 @@ void computeMatricesFromInputs(){
 	if (glfwGetKey( window, GLFW_KEY_LEFT ) == GLFW_PRESS){
 		position -= right * deltaTime * speed;
 	}
-
+    if (glfwGetKey( window, GLFW_KEY_W ) == GLFW_PRESS){
+        position += up * deltaTime * speed;
+	}
+	if (glfwGetKey( window, GLFW_KEY_S ) == GLFW_PRESS){
+        position -= up * deltaTime * speed;
+	}
 	float FoV = initialFoV;// - 5 * glfwGetMouseWheel(); // Now GLFW 3 requires setting up a callback for this. It's a bit too complicated for this beginner's tutorial, so it's disabled instead.
 
 	// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
