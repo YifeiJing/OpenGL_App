@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include "png_loader.hpp"
 #include "RenderModel.hpp"
+#include "RenderModelIndexed.hpp"
 #include "os/fileSystem.hpp"
 
 float scale_factor = 1.0;
@@ -56,16 +57,16 @@ void load_model_names() {
     }
 }
 
-void load_model(std::vector<RenderModel>& models) {
+void load_model(std::vector<RenderModelIndexed>& models) {
     for (int i = 0; i < model_names.size(); i++) {
         if (model_names_checked[i] && model_names_loaded[i] == false) {
-            models.push_back(RenderModel("/" + model_names[i]));
+            models.push_back(RenderModelIndexed("/" + model_names[i]));
             model_names_loaded[i] = true;
         }
     }
 }
 
-bool model_menu_checked(const RenderModel& model) {
+bool model_menu_checked(const RenderModelIndexed& model) {
     for (int i = 0; i < model_names.size(); i++) {
         if (model.getName().find(model_names[i]) != std::string::npos && model_names_checked[i])
             return true;

@@ -11,7 +11,7 @@
 
 #include "Application.hpp"
 #include "Shader.hpp"
-#include "RenderModel.hpp"
+#include "RenderModelIndexed.hpp"
 
 class MyApplication : public Application {
  public:
@@ -32,7 +32,7 @@ class MyApplication : public Application {
 
   // VBO/VAO/ibo
   GLuint vao; 
-  std::vector<RenderModel> models;
+  std::vector<RenderModelIndexed> models;
 };
 
 #endif  // OPENGL_CMAKE_SKELETON_MYAPPLICATION

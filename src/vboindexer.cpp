@@ -1,8 +1,8 @@
 #include <vector>
 #include <map>
+#include <iostream>
 
 #include <glm/glm.hpp>
-#include "parse_stl.h"
 
 #include "vboindexer.hpp"
 
@@ -77,6 +77,7 @@ void indexVBO_slow(
 
 struct PackedVertex{
 	glm::vec3 position;
+	glm::vec2 uv;
 	glm::vec3 normal;
 	bool operator<(const PackedVertex that) const{
 		return memcmp((void*)this, (void*)&that, sizeof(PackedVertex))>0;
@@ -84,11 +85,11 @@ struct PackedVertex{
 };
 
 bool getSimilarVertexIndex_fast( 
-    PackedVertex & packed, 
-	std::map<PackedVertex, unsigned short> & VertexToOutIndex,
-	unsigned short & result
+	PackedVertex & packed, 
+	std::map<PackedVertex,unsigned int> & VertexToOutIndex,
+	unsigned int & result
 ){
-	std::map<PackedVertex,unsigned short>::iterator it = VertexToOutIndex.find(packed);
+	std::map<PackedVertex,unsigned int>::iterator it = VertexToOutIndex.find(packed);
 	if ( it == VertexToOutIndex.end() ){
 		return false;
 	}else{
@@ -98,58 +99,39 @@ bool getSimilarVertexIndex_fast(
 }
 
 void indexVBO(
-    std::vector<stl::triangle> & triangles,
-	std::vector<unsigned short> & out_indices,
+	std::vector<glm::vec3> & in_vertices,
+	std::vector<glm::vec2> & in_uvs,
+	std::vector<glm::vec3> & in_normals,
+
+	std::vector<unsigned int> & out_indices,
 	std::vector<glm::vec3> & out_vertices,
-    std::vector<glm::vec3> & out_normals
+	std::vector<glm::vec2> & out_uvs,
+	std::vector<glm::vec3> & out_normals
 ){
-	std::map<PackedVertex,unsigned short> VertexToOutIndex;
+	std::map<PackedVertex,unsigned int> VertexToOutIndex;
 
 	// For each input vertex
-	for ( unsigned int i=0; i<triangles.size(); i++ ){
+	for ( unsigned int i=0; i<in_vertices.size(); i++ ){
 
-        glm::vec3 vert = {triangles[i].v1.x, triangles[i].v1.y, triangles[i].v1.z};
-        glm::vec3 vert2 = {triangles[i].v2.x, triangles[i].v2.y, triangles[i].v2.z};
-        glm::vec3 vert3 = {triangles[i].v3.x, triangles[i].v3.y, triangles[i].v3.z};
-        glm::vec3 normal = {triangles[i].normal.x, triangles[i].normal.y, triangles[i].normal.z};
-        PackedVertex packed = {vert, normal};
-        PackedVertex packed2 = {vert2, normal};
-        PackedVertex packed3 = {vert3, normal};
+		PackedVertex packed = {in_vertices[i], in_uvs[i], in_normals[i]};
+		
 
 		// Try to find a similar vertex in out_XXXX
-		unsigned short index, index2, index3;
+		unsigned int index;
 		bool found = getSimilarVertexIndex_fast( packed, VertexToOutIndex, index);
-		bool found2 = getSimilarVertexIndex_fast( packed2, VertexToOutIndex, index2);
-		bool found3 = getSimilarVertexIndex_fast( packed3, VertexToOutIndex, index3);
 
 		if ( found ){ // A similar vertex is already in the VBO, use it instead !
 			out_indices.push_back( index );
 		}else{ // If not, it needs to be added in the output data.
-            out_normals.push_back(normal);
-            out_vertices.push_back(vert);
-			unsigned short newindex = (unsigned short)out_vertices.size() - 1;
+			out_vertices.push_back( in_vertices[i]);
+			out_uvs     .push_back( in_uvs[i]);
+			out_normals .push_back( in_normals[i]);
+			unsigned int newindex = (unsigned int)out_vertices.size() - 1;
 			out_indices .push_back( newindex );
 			VertexToOutIndex[ packed ] = newindex;
 		}
-        if ( found2 ){ // A similar vertex is already in the VBO, use it instead !
-			out_indices.push_back( index2 );
-		}else{ // If not, it needs to be added in the output data.
-            out_normals.push_back(normal);
-            out_vertices.push_back(vert2);
-			unsigned short newindex = (unsigned short)out_vertices.size() - 1;
-			out_indices .push_back( newindex );
-			VertexToOutIndex[ packed2 ] = newindex;
-		}
-        if ( found3 ){ // A similar vertex is already in the VBO, use it instead !
-			out_indices.push_back( index3 );
-		}else{ // If not, it needs to be added in the output data.
-            out_normals.push_back(normal);
-            out_vertices.push_back(vert3);
-			unsigned short newindex = (unsigned short)out_vertices.size() - 1;
-			out_indices .push_back( newindex );
-			VertexToOutIndex[ packed3 ] = newindex;
-		}
 	}
+    std::cout << "vboindexer: " << out_indices.size() << " indices" << std::endl;
 }
 
 

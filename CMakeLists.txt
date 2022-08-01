@@ -28,6 +28,8 @@ add_executable(opengl-cmake-skeleton
   src/RenderModel.cpp
   src/os/fileSystem.hpp
   src/os/fileSystem.cpp
+  src/RenderModelIndexed.hpp
+  src/RenderModelIndexed.cpp
 )
 
 set(GLM_TEST_ENABLE ON)
