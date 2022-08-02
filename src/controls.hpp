@@ -8,4 +8,7 @@ glm::mat4 getProjectionMatrix();
 glm::vec3 getPosition();
 float getHorizontalAngle();
 float getVerticalAngle();
+void setPosition(float x, float y, float z);
+void setHorizontalAngle(float v);
+void setVerticalAngle(float v);
 #endif

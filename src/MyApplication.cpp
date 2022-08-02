@@ -37,6 +37,8 @@ float scale_factor = 1.0;
 static std::vector<std::string> model_names;
 static bool model_names_checked[1024] = {false};
 static std::vector<bool> model_names_loaded;
+float camera_position[3] = {0.0};
+float camera_verticalAngle = 0.0, camera_horizontalAngle = 0.0;
 
 const std::vector<std::string> getDirOBJs() {
     auto dirContents = getDirContents(OBJ_DIR);
@@ -186,6 +188,13 @@ void MyApplication::loop() {
       for(int i = 0; i < model_names.size(); i++) {
           ImGui::Checkbox(model_names[i].c_str(), &model_names_checked[i]);
       }
+      ImGui::InputFloat3("Position", camera_position);
+      if (ImGui::Button("Set Position"))
+        setPosition(camera_position[0], camera_position[1], camera_position[2]);
+      ImGui::InputFloat("Horizontal Angle", &camera_horizontalAngle);
+      ImGui::InputFloat("Vertical Angle", &camera_verticalAngle);
+      if (ImGui::Button("Set Horizontal Angle")) setHorizontalAngle(camera_horizontalAngle*glm::pi<float>()/180.0);
+      if (ImGui::Button("Set Vertical Angle")) setVerticalAngle(camera_verticalAngle*glm::pi<float>()/180.0);
       ImGui::End();
   }
   ImGui::Render();

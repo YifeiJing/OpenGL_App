@@ -53,6 +53,19 @@ float getVerticalAngle() {
     return verticalAngle;
 }
 
+void setPosition(float x, float y, float z) {
+    if (position != glm::vec3(x,y,z))
+        position = glm::vec3(x,y,z);
+}
+
+void setHorizontalAngle(float v) {
+    horizontalAngle  = v;
+}
+
+void setVerticalAngle(float v) {
+    verticalAngle = v;
+}
+
 void mouse_right_button_callback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
         double xpos, ypos;
